@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SalesInsight Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="dashboard-container">
+
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">S</div>
+            <h2>SalesInsight</h2>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="/" class="active">
+                <span>▦</span> Dashboard
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <p>Sales Analytics</p>
+            <small>Performance Overview</small>
+        </div>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div>
+                <h1>Sales Dashboard</h1>
+                <p>Analyze your sales performance</p>
+            </div>
+            <div class="topbar-badge">
+                <span class="status-dot"></span>
+                Analytics Overview
+            </div>
+        </header>
+
+        <!-- FLASH MESSAGES -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- UPLOAD -->
+        <section class="upload-section">
+            <div class="upload-header">
+                <div>
+                    <h2>Upload Sales Dataset</h2>
+                    <p>Upload a CSV file to analyze your sales data.</p>
+                </div>
+            </div>
+
+            <form action="/upload" method="POST"
+                  enctype="multipart/form-data" class="upload-form">
+
+                <input type="file" name="file" accept=".csv" required>
+
+                <button type="submit" class="upload-btn">
+                    Upload Dataset
+                </button>
+            </form>
+
+            <a href="/reset_data" class="reset-data-link">
+                Restore Original Dataset
+            </a>
+        </section>
+
+        <!-- FILTERS -->
+        <section class="filter-card">
+            <h2>Dashboard Filters</h2>
+
+            <form method="GET" action="/" class="filter-form">
+
+                <div class="filter-group">
+                    <label>Region</label>
+                    <select name="region">
+                        <option value="All">All Regions</option>
+                        {% for region in regions %}
+                            <option value="{{ region }}"
+                                {% if selected_region == region %}selected{% endif %}>
+                                {{ region }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Category</label>
+                    <select name="category">
+                        <option value="All">All Categories</option>
+                        {% for category in categories %}
+                            <option value="{{ category }}"
+                                {% if selected_category == category %}selected{% endif %}>
+                                {{ category }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Start Date</label>
+                    <input type="date" name="start_date"
+                           value="{{ selected_start }}">
+                </div>
+
+                <div class="filter-group">
+                    <label>End Date</label>
+                    <input type="date" name="end_date"
+                           value="{{ selected_end }}">
+                </div>
+
+                <button type="submit" class="filter-btn">
+                    Apply Filters
+                </button>
+
+                <a href="/" class="reset-btn">
+                    Reset Filters
+                </a>
+
+            </form>
+
+            <div class="download-section">
+                <a href="{{ url_for('download_csv',
+                    region=selected_region,
+                    category=selected_category,
+                    start_date=selected_start,
+                    end_date=selected_end) }}"
+                   class="download-btn">
+                    ⬇ Download Filtered CSV
+                </a>
+
+                <p>Download sales records based on your selected filters.</p>
+            </div>
+        </section>
+
+        <!-- KPI CARDS -->
+        <section class="kpi-grid">
+
+            <div class="kpi-card revenue-card">
+                <div class="kpi-heading">
+                    <h3>Total Revenue</h3>
+                    <span class="kpi-icon">₹</span>
+                </div>
+                <h2>₹{{ "{:,.2f}".format(total_revenue) }}</h2>
+                <p class="kpi-description">Overall sales revenue</p>
+            </div>
+
+            <div class="kpi-card profit-card">
+                <div class="kpi-heading">
+                    <h3>Total Profit</h3>
+                    <span class="kpi-icon">↗</span>
+                </div>
+                <h2>₹{{ "{:,.2f}".format(total_profit) }}</h2>
+                <p class="kpi-description">Profit generated</p>
+            </div>
+
+            <div class="kpi-card orders-card">
+                <div class="kpi-heading">
+                    <h3>Total Orders</h3>
+                    <span class="kpi-icon">▤</span>
+                </div>
+                <h2>{{ "{:,}".format(total_orders) }}</h2>
+                <p class="kpi-description">Orders recorded</p>
+            </div>
+
+            <div class="kpi-card quantity-card">
+                <div class="kpi-heading">
+                    <h3>Units Sold</h3>
+                    <span class="kpi-icon">▣</span>
+                </div>
+                <h2>{{ "{:,}".format(total_quantity) }}</h2>
+                <p class="kpi-description">Products sold</p>
+            </div>
+
+        </section>
+
+        <!-- ADDITIONAL KPIs -->
+        <section class="kpi-grid additional-kpis">
+
+            <div class="kpi-card secondary-card">
+                <h3>Profit Margin</h3>
+                <h2>{{ "%.2f"|format(profit_margin) }}%</h2>
+            </div>
+
+            <div class="kpi-card secondary-card">
+                <h3>Average Order Value</h3>
+                <h2>₹{{ "{:,.2f}".format(average_order_value) }}</h2>
+            </div>
+
+            <div class="kpi-card secondary-card">
+                <h3>Average Profit / Order</h3>
+                <h2>₹{{ "{:,.2f}".format(average_profit_per_order) }}</h2>
+            </div>
+
+        </section>
+
+        <!-- MONTHLY REVENUE -->
+        <section class="chart-card">
+            <div class="section-heading">
+                <h2>Monthly Revenue Trend</h2>
+                <p>Revenue performance over time</p>
+            </div>
+
+            <div class="chart-container">
+                {{ monthly_chart|safe }}
+            </div>
+        </section>
+
+        <!-- CATEGORY AND REGION -->
+        <section class="charts-grid">
+
+            <div class="chart-card">
+                <div class="section-heading">
+                    <h2>Revenue by Category</h2>
+                </div>
+                {{ category_chart|safe }}
+            </div>
+
+            <div class="chart-card">
+                <div class="section-heading">
+                    <h2>Revenue by Region</h2>
+                </div>
+                {{ region_chart|safe }}
+            </div>
+
+        </section>
+
+        <!-- TOP PRODUCTS AND GROWTH -->
+        <section class="charts-grid bottom-charts-grid">
+
+            <!-- TOP PRODUCTS -->
+            <div class="chart-card bottom-chart-card">
+                <div class="section-heading">
+                    <h2>Top 10 Products</h2>
+                    <p>Products ranked by revenue</p>
+                </div>
+
+                {{ product_chart|safe }}
+            </div>
+
+            <!-- MONTHLY GROWTH -->
+            <section class="growth-section">
+
+                <div class="growth-header">
+                    <h2>Monthly Growth Analysis</h2>
+                    <p>Compare monthly revenue performance.</p>
+                </div>
+
+                <div class="growth-kpi">
+
+                    <div class="growth-card">
+                        <h3>Latest Monthly Growth</h3>
+
+                        {% if current_growth > 0 %}
+                            <h2 class="growth-positive">
+                                +{{ "%.2f"|format(current_growth) }}%
+                            </h2>
+                        {% elif current_growth < 0 %}
+                            <h2 class="growth-negative">
+                                {{ "%.2f"|format(current_growth) }}%
+                            </h2>
+                        {% else %}
+                            <h2>{{ "%.2f"|format(current_growth) }}%</h2>
+                        {% endif %}
+
+                        <p>{{ growth_status }}</p>
+                    </div>
+
+                </div>
+
+                {% if growth_chart %}
+                    <div class="growth-chart">
+                        {{ growth_chart|safe }}
+                    </div>
+                {% else %}
+                    <p>Not enough data to calculate monthly growth.</p>
+                {% endif %}
+
+                <!-- GROWTH TABLE -->
+                {% if growth_records %}
+                    <div class="table-wrapper growth-table-wrapper">
+
+                        <table class="sales-table growth-table">
+
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th>Revenue</th>
+                                    <th>Previous Month Revenue</th>
+                                    <th>Growth (%)</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {% for row in growth_records %}
+                                    <tr>
+                                        <td>{{ row["Month"] }}</td>
+
+                                        <td>
+                                            ₹{{ "{:,.2f}".format(row["Revenue"]) }}
+                                        </td>
+
+                                        <td>
+                                            {% if row["Previous_Revenue"] is not none
+                                               and row["Previous_Revenue"] == row["Previous_Revenue"] %}
+                                                ₹{{ "{:,.2f}".format(row["Previous_Revenue"]) }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+
+                                        <td>
+                                            {% if row["Growth_Percentage"] > 0 %}
+                                                <span class="growth-positive">
+                                                    +{{ "%.2f"|format(row["Growth_Percentage"]) }}%
+                                                </span>
+                                            {% elif row["Growth_Percentage"] < 0 %}
+                                                <span class="growth-negative">
+                                                    {{ "%.2f"|format(row["Growth_Percentage"]) }}%
+                                                </span>
+                                            {% else %}
+                                                {{ "%.2f"|format(row["Growth_Percentage"]) }}%
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+
+                        </table>
+
+                    </div>
+                {% endif %}
+
+            </section>
+
+        </section>
+
+        <!-- BUSINESS INSIGHTS -->
+        <section class="insights-card">
+
+            <div class="section-heading">
+                <h2>Business Insights</h2>
+                <p>Key observations from your sales data</p>
+            </div>
+
+            <ul class="insights-list">
+                {% for insight in insights %}
+                    <li>{{ insight }}</li>
+                {% endfor %}
+            </ul>
+
+        </section>
+
+        <!-- SALES RECORDS -->
+        <section class="table-card">
+
+            <div class="table-header">
+                <div>
+                    <h2>Sales Records</h2>
+                    <p>Search and explore your sales transactions.</p>
+                </div>
+            </div>
+
+            <form method="GET" action="/" class="table-search-form">
+
+                <input type="hidden" name="region"
+                       value="{{ selected_region }}">
+                <input type="hidden" name="category"
+                       value="{{ selected_category }}">
+                <input type="hidden" name="start_date"
+                       value="{{ selected_start }}">
+                <input type="hidden" name="end_date"
+                       value="{{ selected_end }}">
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ search_query }}"
+                    placeholder="Search customer, product, region..."
+                    class="table-search-input"
+                >
+
+                <button type="submit" class="filter-btn">
+                    Search
+                </button>
+
+                <a href="{{ url_for('home',
+                    region=selected_region,
+                    category=selected_category,
+                    start_date=selected_start,
+                    end_date=selected_end) }}"
+                   class="reset-btn">
+                    Clear Search
+                </a>
+
+            </form>
+
+            <p class="table-count">
+                Showing {{ table_records|length }} records on this page
+                | {{ total_table_records }} matching records
+            </p>
+
+            <div class="table-wrapper">
+
+                <table class="sales-table">
+
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Region</th>
+                            <th>Quantity</th>
+                            <th>Revenue</th>
+                            <th>Profit</th>
+                            <th>Payment</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for row in table_records %}
+                            <tr>
+                                <td>{{ row["Order_ID"] }}</td>
+                                <td>{{ row["Order_Date"] }}</td>
+                                <td>{{ row["Customer"] }}</td>
+                                <td>{{ row["Product"] }}</td>
+                                <td>{{ row["Category"] }}</td>
+                                <td>{{ row["Region"] }}</td>
+                                <td>{{ row["Quantity"] }}</td>
+                                <td>₹{{ "{:,.2f}".format(row["Revenue"]) }}</td>
+                                <td>₹{{ "{:,.2f}".format(row["Profit"]) }}</td>
+                                <td>{{ row["Payment_Method"] }}</td>
+                            </tr>
+                        {% endfor %}
+
+                        {% if not table_records %}
+                            <tr>
+                                <td colspan="10" class="no-records">
+                                    No records found.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <!-- PAGINATION -->
+            <div class="pagination">
+
+                {% if page > 1 %}
+                    <a class="page-btn"
+                       href="{{ url_for('home',
+                           region=selected_region,
+                           category=selected_category,
+                           start_date=selected_start,
+                           end_date=selected_end,
+                           search=search_query,
+                           page=page-1) }}">
+                        Previous
+                    </a>
+                {% endif %}
+
+                <span class="page-info">
+                    Page {{ page }} of {{ total_pages }}
+                </span>
+
+                {% if page < total_pages %}
+                    <a class="page-btn"
+                       href="{{ url_for('home',
+                           region=selected_region,
+                           category=selected_category,
+                           start_date=selected_start,
+                           end_date=selected_end,
+                           search=search_query,
+                           page=page+1) }}">
+                        Next
+                    </a>
+                {% endif %}
+
+            </div>
+
+        </section>
+
+        <footer class="dashboard-footer">
+            <p>SalesInsight <span>•</span> Sales Analytics Dashboard</p>
+        </footer>
+
+    </main>
+
+</div>
+
+</body>
+</html>
